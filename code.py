@@ -48,8 +48,7 @@ def warming_beam_solver(u, nt, dx, dt):
 
 # 精确解
 def exact_solution(x, t):
-    x_wrapped = (x - nu * t) % L
-    return np.sin(2 * np.pi * x_wrapped / L)
+    return np.sin(2 * np.pi * (x - nu * t))
 
 
 
@@ -64,7 +63,7 @@ def validate_stability():
     nx = 300
     dx = L / nx
     x = np.linspace(0, L, nx)
-    u_initial = np.sin(2 * np.pi * x / L)
+    u_initial = np.sin(2 * np.pi * x )
 
     for scheme in schemes:
         plt.figure(figsize=(10, 4))
@@ -122,7 +121,7 @@ def validate_convergence():
             x = np.linspace(0, L, nx)
 
             # 计算数值解
-            u_initial = np.sin(2 * np.pi * x / L)
+            u_initial = np.sin(2 * np.pi * x )
             if scheme == 'upwind':
                 u_num = upwind_solver(u_initial.copy(), nt, dx, dt)
             elif scheme == 'lax_wendroff':
@@ -163,7 +162,7 @@ def analyze_dissipation_phase():
     nx = 600
     dx = L / nx
     x = np.linspace(0, L, nx)
-    u_initial = np.sin(2 * np.pi * x / L)
+    u_initial = np.sin(2 * np.pi * x)
 
     # 定义格式及其参数
     schemes = [
@@ -188,7 +187,7 @@ def analyze_dissipation_phase():
         # 相位分析
         peak_num = x[np.argmax(u_num)]
         x_exact_peak = x[np.argmax(u_exact)]
-        phase_diff = (peak_num - x_exact_peak) / L
+        phase_diff = (peak_num - x_exact_peak) % 1
 
         print(f"\n{scheme_name} analysis result:")
         print(f"amplitude damping factor: {amplitude_loss:.4%}")

@@ -29,6 +29,29 @@
 
 \maketitle
 
+\section{问题介绍}
+求解一维对流方程：
+\begin{equation}
+    \frac{\partial u}{\partial t} + \frac{\partial u}{\partial x} = 0,
+\end{equation}
+其中 $u$ 为流体速度，$t$ 为时间，$x$ 为空间坐标。
+
+初始条件为：
+\begin{equation}
+    u(x, 0) = \sin(2\pi x), \quad x \in [0,3].
+\end{equation}
+边界条件为周期性边界条件：
+\begin{equation}
+    u(0, t) = u(3, t), \quad u(x, 0) = u(x + 3, 0).
+\end{equation}
+
+首先可以先求解该方程的解析解。对流方程的解析解为：
+\begin{equation}
+    u(x, t) = \sin(2\pi (x - t)).
+\end{equation}
+
+下求解该方程的数值解。数值格式为显式格式，采用一阶迎风格式、Lax-Wendroff 格式和 Warming-Beam 格式进行求解。
+
 \section{数值格式介绍}
 \subsection{一阶迎风格式 (Upwind)}
 一阶迎风格式是一种显式格式，其离散形式为：
@@ -148,6 +171,43 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\
 |\sigma| \leq 2.
 \]
 
+\newpage
+\section{代码实现}
+以下是实现各格式的 Python 代码：
+\lstinputlisting[language=Python, firstline=8, lastline=46, caption={数值格式实现代码}, label={lst:extracted_python_code}]{code.py}
+
+稳定性验证、精度验证、相位超前与耗散分析的代码实现如下：
+\lstinputlisting[language=Python, firstline=55, lastline=219, caption={稳定性验证、精度验证、相位超前与耗散分析代码}, label={lst:extracted_python_code2}]{code.py}
+
+其中稳定性是通过比较不同的$\sigma$值下数值解的表现来验证。
+
+精度的计算方法是通过计算数值解和解析解之间的最大绝对误差 
+
+\[
+\text{Error} = \max |u_{\text{numerical}} - u_{\text{exact}}|
+\]
+
+然后对不同的网格密度 $\Delta x$ 取对数，拟合 $\log(\text{Error})$ 与 $\log(\Delta x)$ 的线性关系。拟合直线的斜率即为数值格式的精度阶数：
+\[
+\log(\text{Error}) = p \log(\Delta x) + C,
+\]
+其中 $p$ 为精度阶数，$C$ 为常数。
+
+耗散分析的原理是通过计算数值解的振幅衰减来评估数值格式的耗散特性。具体方法是先计算数值解的振幅：
+\[
+\text{amplitude\_num} = \frac{\max(u_{\text{num}}) - \min(u_{\text{num}})}{2},
+\]
+由于初始振幅为1，故定义振幅损失为：
+\[
+\text{amplitude\_loss} = 1 - \text{amplitude\_num}.
+\]
+
+相位超前或滞后的计算方法如下：通过数值解和解析解的峰值位置计算相位差，首先找到数值解的峰值位置 $x_{\text{num}}$ 和解析解的峰值位置 $x_{\text{exact}}$，然后计算相位差：
+\[
+\text{phase\_diff} = \frac{2\pi (x_{\text{num}} - x_{\text{exact}})}{L},
+\]
+其中 $L = 1$ 为波长。根据相位差的正负判断相位超前或滞后：若 $\text{phase\_diff} > 0$，则为相位超前，超前量为 $\text{phase\_diff}$ 的绝对值；若 $\text{phase\_diff} < 0$，则为相位滞后，滞后量为 $\text{phase\_diff}$ 的绝对值；若 $\text{phase\_diff} = 0$，则为相位同步。以下是相位分析的结果：振幅衰减因子为 $\text{amplitude\_loss}$。若 $\text{phase\_diff} > 0$，则为相位超前，超前量为 $\text{phase\_diff}$ 波长；若 $\text{phase\_diff} < 0$，则为相位滞后，滞后量为 $\text{phase\_diff}$ 波长；若 $\text{phase\_diff} = 0$，则为相位同步。
+
 
 
 \section{稳定性条件验证}
@@ -158,9 +218,33 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\
     \item Warming-Beam 格式：$|\sigma| \leq 2$。
 \end{itemize}
 
-通过数值实验验证了不同 $\sigma$ 下的稳定性表现。图 展示了稳定和不稳定情况下的数值解对比。
+通过数值实验可以验证不同 $\sigma$ 下的稳定性表现。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{upwind_stability.pdf}
+    \caption{一阶迎风格式的稳定性验证 ($\sigma \geq 1$ 时数值解不稳定)}
+    \label{fig:upwind_stability}
+\end{figure}
 
+由图 \ref{fig:upwind_stability} 可见，当 CFL 数 $\sigma$ 大于 1 时，数值解（橙色）在部分x区域出现大幅震荡的现象，使解不稳定。
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{lax_wendroff_stability.pdf}
+    \caption{Lax-Wendroff 格式的稳定性验证 ($\sigma \geq 1$ 时数值解不稳定)}
+    \label{fig:lax_wendroff_stability}
+\end{figure}
+
+由图 \ref{fig:lax_wendroff_stability} 可见，当 CFL 数 $\sigma$ 大于 1 时，数值解（橙色）在全部x区域出现大幅震荡的现象，使解不稳定。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{warming_beam_stability.pdf}
+    \caption{Warming-Beam 格式的稳定性验证 ($\sigma \geq 2$ 时数值解不稳定)}
+    \label{fig:warming_beam_stability}
+\end{figure} 
+
+由图 \ref{fig:warming_beam_stability} 可见，当 CFL 数 $\sigma$ 大于 2 时，数值解（橙色）在全部x区域出现大幅震荡的现象，使解不稳定。
 
 \section{相位超前与耗散分析}
 数值格式的相位超前和耗散特性通过分析数值解与精确解的偏差来评估。以下是各格式的分析结果：
@@ -170,7 +254,8 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\
     \item \textbf{Warming-Beam 格式}：振幅衰减较小，但对稳定性要求较高，可能出现相位滞后。
 \end{itemize}
 
-图展示了各格式的耗散与相位分析结果。
+以下图展示了各格式的耗散与相位分析结果。
+
 
 
 
