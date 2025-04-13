@@ -100,28 +100,37 @@ def validate_stability():
         plt.tight_layout()
         # 添加PDF保存
         plt.savefig(f"{scheme['name']}_stability.pdf", bbox_inches='tight', dpi=300)
-        plt.close()  # 关闭当前figure以释放内存
+        plt.close()
     plt.show()
 # 精度验证
 def validate_convergence():
     plt.figure(figsize=(10, 6))
-    nx_list = [150, 300, 600, 1200]
-    markers = ['o', 's', 'D']
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    nx_list = [150, 300, 600, 1200, 2400]  # 细化网格
+    markers = ['o', 's', 'D', '^', 'v']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     schemes = ['upwind', 'lax_wendroff', 'warming_beam']
+
+    # 定义各格式的CFL数
+    sigma_dict = {
+        'upwind': 0.8,  # σ < 1
+        'lax_wendroff': 0.8,  # σ < 1
+        'warming_beam': 1.8  # σ < 2
+    }
 
     for idx, scheme in enumerate(schemes):
         errors = []
         dx_list = []
+        sigma = sigma_dict[scheme]
+
         for nx in nx_list:
             dx = L / nx
-            sigma = 0.8
-            dt = sigma * dx / nu
+            dt = sigma * dx / nu  # 保持CFL数恒定
             nt = int(T / dt)
-            x = np.linspace(0, L, nx)
+            x = np.linspace(0, L, nx, endpoint=False)
+
+            u_initial = np.sin(2 * np.pi * x)
 
             # 计算数值解
-            u_initial = np.sin(2 * np.pi * x )
             if scheme == 'upwind':
                 u_num = upwind_solver(u_initial.copy(), nt, dx, dt)
             elif scheme == 'lax_wendroff':
@@ -129,31 +138,32 @@ def validate_convergence():
             elif scheme == 'warming_beam':
                 u_num = warming_beam_solver(u_initial.copy(), nt, dx, dt)
 
-            # 误差计算
-            u_exact = exact_solution(x, T)
-            errors.append(np.max(np.abs(u_num - u_exact)))
+            # 精确解 (波长为1)
+            t_final = nt * dt
+            x_exact = (x - nu * t_final) % L  # 周期边界处理
+            u_exact = np.sin(2 * np.pi * x_exact)  # 波长=1
+
+            # 计算L2误差
+            error = np.sqrt(np.mean((u_num - u_exact) ** 2))
+            errors.append(error)
             dx_list.append(dx)
 
-        # 收敛阶拟合
-        log_dx = np.log10(dx_list)
-        log_err = np.log10(errors)
+        # 收敛阶拟合 (使用后三个网格点)
+        log_dx = np.log10(dx_list[-3:])
+        log_err = np.log10(errors[-3:])
         coeffs = np.polyfit(log_dx, log_err, 1)
 
-        # 绘制误差曲线
         plt.plot(log_dx, log_err,
                  marker=markers[idx], color=colors[idx], linestyle='--',
-                 label=f'{scheme} (degree={coeffs[0]:.2f})')
+                 label=f'{scheme} (slope={coeffs[0]:.2f})')
 
     plt.xlabel(r'$\log_{10}(\Delta x)$', fontsize=12)
-    plt.ylabel(r'$\log_{10}($maximum error$)$', fontsize=12)
-    plt.title('convergence_analysis')
+    plt.ylabel(r'$\log_{10}(\mathrm{L2\ Error})$', fontsize=12)
+    plt.title('Convergence Analysis (Wavelength=1)')
     plt.legend()
     plt.grid(True, alpha=0.3)
-
-    # 添加PDF保存
     plt.savefig("convergence_analysis.pdf", bbox_inches='tight', dpi=300)
     plt.close()
-
 
 
 # 耗散与相位分析

@@ -56,20 +56,30 @@
 \subsection{一阶迎风格式 (Upwind)}
 一阶迎风格式是一种显式格式，其离散形式为：
 \[
-u_i^{n+1} = u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right),
+u_j^{n+1} = u_j^n - \sigma \left( u_j^n - u_{j-1}^n \right),
 \]
-其中 $\sigma = \frac{\nu \Delta t}{\Delta x}$ 为 CFL 数。
+其中 $\sigma = \frac{ \Delta t}{\Delta x}$ 为 CFL 数。
 
-下证明该格式的精度为一阶。考虑 Taylor 展开式：
-\[
-\begin{aligned}
-u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) \\
-&= u_i^n - \sigma \left( u_i^n - (u_i^n - \Delta x u_x) + O(\Delta x^2) \right) \\
-&= u_i^n - \sigma O(\Delta x) + O(\Delta x^2).
-\end{aligned}
-\]
+为了分析该格式的精度，考虑 Taylor 展开式：
+\begin{itemize}
+    \item 时间展开：
+    \[
+    u_j^{n+1} = u_j^n + \Delta t u_t + \frac{\Delta t^2}{2} u_{tt} + O(\Delta t^3),
+    \]
+    \item 空间展开：
+    \[
+    u_{j-1}^n = u_j^n - \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} + O(\Delta x^3).
+    \]
+\end{itemize}
 
-因此，误差为 $O(\Delta x)$，即精度为一阶。
+将上述展开式代入离散格式，得到：
+\begin{align*}
+u_j^n + \Delta t u_t + \frac{\Delta t^2}{2} u_{tt} + O(\Delta t^3) &= u_j^n - \sigma \left( u_j^n - \left( u_j^n - \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} + O(\Delta x^3) \right) \right), \\
+\Delta t u_t + \frac{\Delta t^2}{2} u_{tt} + O(\Delta t^3) &= -\sigma \left( -\Delta x u_x + \frac{\Delta x^2}{2} u_{xx} + O(\Delta x^3) \right), \\
+u_t +  u_x &= \frac{\Delta x}{2} (1 - \sigma) u_{xx} + O(\Delta t, \Delta x^2).
+\end{align*}
+
+由此可见，该格式的时间精度为 $O(\Delta t)$，空间精度为 $O(\Delta x)$，即为一阶格式。
 
 再考虑数值格式的稳定性。设 $u_i^n = e^{i(kx - \omega t)}$，代入格式得到：
 \[
@@ -93,20 +103,35 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) \\
 \subsection{Lax-Wendroff 格式}
 Lax-Wendroff 格式是一种二阶显式格式，其离散形式为：
 \[
-u_i^{n+1} = u_i^n - \frac{\sigma}{2} \left( u_{i+1}^n - u_{i-1}^n \right) + \frac{\sigma^2}{2} \left( u_{i+1}^n - 2u_i^n + u_{i-1}^n \right).
+u_j^{n+1} = u_j^n - \frac{\sigma}{2} \left( u_{j+1}^n - u_{j-1}^n \right) + \frac{\sigma^2}{2} \left( u_{j+1}^n - 2u_j^n + u_{j-1}^n \right).
 \]
 
-下证明该格式的精度为一阶。考虑 Taylor 展开式：
+泰勒展开到4阶：
+\begin{itemize}
+    \item 时间展开：
+    \[
+    u_j^{n+1} = u_j^n + \Delta t u_t + \frac{\Delta t^2}{2} u_{tt} + \frac{\Delta t^3}{6} u_{ttt} + O(\Delta t^4),
+    \]
+    \item 空间展开：
+    \[
+    u_{j+1}^n = u_j^n + \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} + \frac{\Delta x^3}{6} u_{xxx} + O(\Delta x^4),
+    \]
+    \[
+    u_{j-1}^n = u_j^n - \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} - \frac{\Delta x^3}{6} u_{xxx} + O(\Delta x^4).
+    \]
+\end{itemize}
+
+\begin{align*}
+u_j^n + \Delta t u_t + \frac{\Delta t^2}{2} u_{tt} + \frac{\Delta t^3}{6} u_{ttt} + O(\Delta t^4) &= u_j^n - \frac{\sigma}{2} \left( 2\Delta x u_x + \frac{\Delta x^3}{3} u_{xxx} + O(\Delta x^5) \right) \\
+&\quad + \frac{\sigma^2}{2} \left( \Delta x^2 u_{xx} + \frac{\Delta x^4}{12} u_{xxxx} + O(\Delta x^5) \right).
+\end{align*}
+
+整理后得到修正方程：
 \[
-\begin{aligned}
-u_i^{n+1} &= u_i^n - \frac{\sigma}{2} \left( u_{i+1}^n - u_{i-1}^n \right) + \frac{\sigma^2}{2} \left( u_{i+1}^n - 2u_i^n + u_{i-1}^n \right) \\
-&= u_i^n - \frac{\sigma}{2} \left( (u_i^n + \Delta x u_x) - (u_i^n - \Delta x u_x) \right) + \frac{\sigma^2}{2} \left( (u_i^n + \Delta x u_x) - 2u_i^n + (u_i^n - \Delta x u_x) \right) \\
-&= u_i^n - \frac{\sigma}{2} \left( 2\Delta x u_x \right) + \frac{\sigma^2}{2} \left( 0 \right) + O(\Delta x^3) \\
-&= u_i^n - \sigma \Delta x u_x + O(\Delta x^3).
-\end{aligned}
+u_t + u_x - \frac{\Delta x^2}{6} (1-\sigma^2) u_{xxx} + O(\Delta t^2, \Delta x^4) = 0.
 \]
 
-因此，误差为 $O(\Delta x)$，即精度为一阶。
+故lax-wendroff格式的时间精度为 $O(\Delta t^2)$，空间精度为 $O(\Delta x^2)$，即精度为二阶。
 
 再考虑数值格式的稳定性。设 $u_i^n = e^{i(kx - \omega t)}$，代入格式得到：
 \[
@@ -137,18 +162,44 @@ Warming-Beam 格式是一种三阶迎风格式，其离散形式为：
 u_i^{n+1} = u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2u_{i-1}^n + u_{i-2}^n \right).
 \]
 
-下证明该格式的精度为一阶。考虑 Taylor 展开式：
+下证明该格式的精度为三阶。考虑 Taylor 展开式，取 $\nu = 1$：
+
+\begin{itemize}
+    \item 时间展开：
+    \[
+    u_i^{n+1} = u_i^n + \Delta t u_t + \frac{\Delta t^2}{2} u_{tt} + \frac{\Delta t^3}{6} u_{ttt} + O(\Delta t^4),
+    \]
+    \item 空间展开：
+    \[
+    u_{i-1}^n = u_i^n - \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} - \frac{\Delta x^3}{6} u_{xxx} + O(\Delta x^4),
+    \]
+    \[
+    u_{i-2}^n = u_i^n - 2\Delta x u_x + 2\Delta x^2 u_{xx} - \frac{4\Delta x^3}{3} u_{xxx} + O(\Delta x^4).
+    \]
+\end{itemize}
+
+将上述展开式代入 Warming-Beam 格式：
 \[
 \begin{aligned}
 u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2u_{i-1}^n + u_{i-2}^n \right) \\
-&= u_i^n - \sigma \left( u_i^n - (u_i^n - \Delta x u_x) + O(\Delta x^2) \right) \\
-&\quad - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2(u_i^n - \Delta x u_x) + (u_i^n - 2\Delta x u_x) + O(\Delta x^2) \right) \\
-&= u_i^n - \sigma O(\Delta x) - \frac{\sigma (1-\sigma)}{2} \left( O(\Delta x^2) \right) \\
-&= u_i^n - \sigma O(\Delta x) + O(\Delta x^2).
+&= u_i^n - \sigma \left( u_i^n - \left( u_i^n - \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} - \frac{\Delta x^3}{6} u_{xxx} \right) \right) \\
+&\quad - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2\left( u_i^n - \Delta x u_x + \frac{\Delta x^2}{2} u_{xx} - \frac{\Delta x^3}{6} u_{xxx} \right) \right. \\
+&\quad + \left( u_i^n - 2\Delta x u_x + 2\Delta x^2 u_{xx} - \frac{4\Delta x^3}{3} u_{xxx} \right) \Bigg) \\
+&= u_i^n - \sigma \left( -\Delta x u_x + \frac{\Delta x^2}{2} u_{xx} - \frac{\Delta x^3}{6} u_{xxx} \right) \\
+&\quad - \frac{\sigma (1-\sigma)}{2} \left(  \Delta x^2 u_{xx} - \Delta x^3 u_{xxx} \right) \\
+&= u_i^n + \sigma \Delta x u_x - \frac{\sigma \Delta x^2}{2} u_{xx} + \frac{\sigma \Delta x^3}{6} u_{xxx} \\
+&\quad - \frac{\sigma (1-\sigma) \Delta x^2 u_{xx}}{2} + \frac{\sigma (1-\sigma) \Delta x^3 u_{xxx}}{2}.
 \end{aligned}
 \]
 
-故可得误差为 $O(\Delta x)$，即精度为一阶。
+整理后得到修正方程：
+\[
+u_t + u_x + \frac{\Delta x^2}{6} (1 - \sigma)(2 - \sigma) u_{xxx} + O(\Delta t^2, \Delta x^4) = 0.
+\]
+
+由此可见，该格式空间精度为 $O(\Delta x^2)$。
+
+
 
 再考虑数值格式的稳定性：设 $u_i^n = e^{i(kx - \omega t)}$，代入格式得到：
 \[
@@ -177,7 +228,7 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\
 \lstinputlisting[language=Python, firstline=8, lastline=46, caption={数值格式实现代码}, label={lst:extracted_python_code}]{code.py}
 
 稳定性验证、精度验证、相位超前与耗散分析的代码实现如下：
-\lstinputlisting[language=Python, firstline=55, lastline=219, caption={稳定性验证、精度验证、相位超前与耗散分析代码}, label={lst:extracted_python_code2}]{code.py}
+\lstinputlisting[language=Python, firstline=55, lastline=228, caption={稳定性验证、精度验证、相位超前与耗散分析代码}, label={lst:extracted_python_code2}]{code.py}
 
 其中稳定性是通过比较不同的$\sigma$值下数值解的表现来验证。
 
@@ -206,9 +257,7 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\
 \[
 \text{phase\_diff} = \frac{2\pi (x_{\text{num}} - x_{\text{exact}})}{L},
 \]
-其中 $L = 1$ 为波长。根据相位差的正负判断相位超前或滞后：若 $\text{phase\_diff} > 0$，则为相位超前，超前量为 $\text{phase\_diff}$ 的绝对值；若 $\text{phase\_diff} < 0$，则为相位滞后，滞后量为 $\text{phase\_diff}$ 的绝对值；若 $\text{phase\_diff} = 0$，则为相位同步。以下是相位分析的结果：振幅衰减因子为 $\text{amplitude\_loss}$。若 $\text{phase\_diff} > 0$，则为相位超前，超前量为 $\text{phase\_diff}$ 波长；若 $\text{phase\_diff} < 0$，则为相位滞后，滞后量为 $\text{phase\_diff}$ 波长；若 $\text{phase\_diff} = 0$，则为相位同步。
-
-
+其中 $L = 1$ 为波长。根据相位差的正负判断相位超前或滞后：若 $\text{phase\_diff} > 0$，则为相位超前，超前量为 $\text{phase\_diff}$ 的绝对值；若 $\text{phase\_diff} < 0$，则为相位滞后，滞后量为 $\text{phase\_diff}$ 的绝对值；若 $\text{phase\_diff} = 0$，则为相位同步。
 
 \section{稳定性条件验证}
 数值格式的稳定性由 CFL 数 $\sigma$ 决定。以下是各格式的稳定性条件：
@@ -246,12 +295,17 @@ u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\
 
 由图 \ref{fig:warming_beam_stability} 可见，当 CFL 数 $\sigma$ 大于 2 时，数值解（橙色）在全部x区域出现大幅震荡的现象，使解不稳定。
 
-\section{相位超前与耗散分析}
-数值格式的相位超前和耗散特性通过分析数值解与精确解的偏差来评估。以下是各格式的分析结果：
+\newpage
+\section{精度验证}
+数值格式的精度通过计算数值解与解析解之间的最大绝对误差来验证。以下是各格式的精度验证结果：
+
+\newpage
+\section{相位超前滞后与耗散分析}
+数值格式的相位超前滞后和耗散特性通过分析数值解与精确解的偏差来评估。以下是各格式的分析结果：
 \begin{itemize}
     \item \textbf{一阶迎风格式}：具有较强的耗散特性，振幅衰减显著，但相位偏差较小。
-    \item \textbf{Lax-Wendroff 格式}：振幅衰减较小，但可能出现相位超前或滞后。
-    \item \textbf{Warming-Beam 格式}：振幅衰减较小，但对稳定性要求较高，可能出现相位滞后。
+    \item \textbf{Lax-Wendroff 格式}：振幅衰减较小，相位偏差较小。
+    \item \textbf{Warming-Beam 格式}：振幅衰减较小，相位偏差较小。
 \end{itemize}
 
 以下图展示了各格式的耗散与相位分析结果。
