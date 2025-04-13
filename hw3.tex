@@ -1,0 +1,185 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{ctex} % 支持中文
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+\lstset{
+    language=Python, % 添加语言支持
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    breaklines=true,
+    frame=single,
+    captionpos=b
+}
+
+\title{计算流体力学作业3}
+\author{郑恒2200011086}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{数值格式介绍}
+\subsection{一阶迎风格式 (Upwind)}
+一阶迎风格式是一种显式格式，其离散形式为：
+\[
+u_i^{n+1} = u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right),
+\]
+其中 $\sigma = \frac{\nu \Delta t}{\Delta x}$ 为 CFL 数。
+
+下证明该格式的精度为一阶。考虑 Taylor 展开式：
+\[
+\begin{aligned}
+u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) \\
+&= u_i^n - \sigma \left( u_i^n - (u_i^n - \Delta x u_x) + O(\Delta x^2) \right) \\
+&= u_i^n - \sigma O(\Delta x) + O(\Delta x^2).
+\end{aligned}
+\]
+
+因此，误差为 $O(\Delta x)$，即精度为一阶。
+
+再考虑数值格式的稳定性。设 $u_i^n = e^{i(kx - \omega t)}$，代入格式得到：
+\[
+\begin{aligned}
+u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) \\
+&= e^{i(kx - \omega t)} - \sigma \left( e^{i(kx - \omega t)} - e^{i(k(x - \Delta x) - \omega t)} \right) \\
+&= e^{i(kx - \omega t)} \left( 1 - \sigma (1 - e^{-ik\Delta x}) \right).
+\end{aligned}
+\]
+
+稳定性的条件为：
+\[
+\left| 1 - \sigma (1 - e^{-ik\Delta x}) \right| \leq 1.
+\]
+
+故可得稳定性条件为：
+\[
+|\sigma| \leq 1.
+\]
+
+\subsection{Lax-Wendroff 格式}
+Lax-Wendroff 格式是一种二阶显式格式，其离散形式为：
+\[
+u_i^{n+1} = u_i^n - \frac{\sigma}{2} \left( u_{i+1}^n - u_{i-1}^n \right) + \frac{\sigma^2}{2} \left( u_{i+1}^n - 2u_i^n + u_{i-1}^n \right).
+\]
+
+下证明该格式的精度为一阶。考虑 Taylor 展开式：
+\[
+\begin{aligned}
+u_i^{n+1} &= u_i^n - \frac{\sigma}{2} \left( u_{i+1}^n - u_{i-1}^n \right) + \frac{\sigma^2}{2} \left( u_{i+1}^n - 2u_i^n + u_{i-1}^n \right) \\
+&= u_i^n - \frac{\sigma}{2} \left( (u_i^n + \Delta x u_x) - (u_i^n - \Delta x u_x) \right) + \frac{\sigma^2}{2} \left( (u_i^n + \Delta x u_x) - 2u_i^n + (u_i^n - \Delta x u_x) \right) \\
+&= u_i^n - \frac{\sigma}{2} \left( 2\Delta x u_x \right) + \frac{\sigma^2}{2} \left( 0 \right) + O(\Delta x^3) \\
+&= u_i^n - \sigma \Delta x u_x + O(\Delta x^3).
+\end{aligned}
+\]
+
+因此，误差为 $O(\Delta x)$，即精度为一阶。
+
+再考虑数值格式的稳定性。设 $u_i^n = e^{i(kx - \omega t)}$，代入格式得到：
+\[
+\begin{aligned}
+u_i^{n+1} &= u_i^n - \frac{\sigma}{2} \left( u_{i+1}^n - u_{i-1}^n \right) + \frac{\sigma^2}{2} \left( u_{i+1}^n - 2u_i^n + u_{i-1}^n \right) \\
+&= e^{i(kx - \omega t)} - \frac{\sigma}{2} \left( e^{i(k(x + \Delta x) - \omega t)} - e^{i(k(x - \Delta x) - \omega t)} \right) \\
+&\quad + \frac{\sigma^2}{2} \left( e^{i(k(x + \Delta x) - \omega t)} - 2e^{i(kx - \omega t)} + e^{i(k(x - \Delta x) - \omega t)} \right) \\
+&= e^{i(kx - \omega t)} \left( 1 - \frac{\sigma}{2} (e^{ik\Delta x} - e^{-ik\Delta x}) + \frac{\sigma^2}{2} (e^{ik\Delta x} - 2 + e^{-ik\Delta x}) \right) \\
+&= e^{i(kx - \omega t)} \left( 1 - \sigma \sin(k\Delta x) + \frac{\sigma^2}{2} (e^{ik\Delta x} - 2 + e^{-ik\Delta x}) \right).
+\end{aligned}
+\]
+
+稳定性的条件为：
+\[
+\left| 1 - \sigma \sin(k\Delta x) + \frac{\sigma^2}{2} (e^{ik\Delta x} - 2 + e^{-ik\Delta x}) \right| \leq 1.
+\]
+
+故可得稳定性条件为：
+\[
+|\sigma| \leq 1.
+\]
+
+
+
+\subsection{Warming-Beam 格式}
+Warming-Beam 格式是一种三阶迎风格式，其离散形式为：
+\[
+u_i^{n+1} = u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2u_{i-1}^n + u_{i-2}^n \right).
+\]
+
+下证明该格式的精度为一阶。考虑 Taylor 展开式：
+\[
+\begin{aligned}
+u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2u_{i-1}^n + u_{i-2}^n \right) \\
+&= u_i^n - \sigma \left( u_i^n - (u_i^n - \Delta x u_x) + O(\Delta x^2) \right) \\
+&\quad - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2(u_i^n - \Delta x u_x) + (u_i^n - 2\Delta x u_x) + O(\Delta x^2) \right) \\
+&= u_i^n - \sigma O(\Delta x) - \frac{\sigma (1-\sigma)}{2} \left( O(\Delta x^2) \right) \\
+&= u_i^n - \sigma O(\Delta x) + O(\Delta x^2).
+\end{aligned}
+\]
+
+故可得误差为 $O(\Delta x)$，即精度为一阶。
+
+再考虑数值格式的稳定性：设 $u_i^n = e^{i(kx - \omega t)}$，代入格式得到：
+\[
+\begin{aligned}
+u_i^{n+1} &= u_i^n - \sigma \left( u_i^n - u_{i-1}^n \right) - \frac{\sigma (1-\sigma)}{2} \left( u_i^n - 2u_{i-1}^n + u_{i-2}^n \right) \\
+&= e^{i(kx - \omega t)} - \sigma \left( e^{i(kx - \omega t)} - e^{i(k(x - \Delta x) - \omega t)} \right) \\
+&\quad - \frac{\sigma (1-\sigma)}{2} \left( e^{i(kx - \omega t)} - 2e^{i(k(x - \Delta x) - \omega t)} + e^{i(k(x - 2\Delta x) - \omega t)} \right) \\
+&= e^{i(kx - \omega t)} \left( 1 - \sigma (1 - e^{-ik\Delta x}) - \frac{\sigma (1-\sigma)}{2} (1 - 2e^{-ik\Delta x} + e^{-2ik\Delta x}) \right) \\
+&= e^{i(kx - \omega t)} \left( 1 - \sigma (1 - e^{-ik\Delta x}) - \frac{\sigma (1-\sigma)}{2} (1 - 2e^{-ik\Delta x} + e^{-2ik\Delta x}) \right).
+\end{aligned}
+\]
+
+稳定性的条件为：
+\[
+|1-\sigma (1 - e^{-ik\Delta x}) - \frac{\sigma (1-\sigma)}{2} (1 - 2e^{-ik\Delta x} + e^{-2ik\Delta x})| \leq 1.
+\]
+
+故可得稳定性条件为：
+\[
+|\sigma| \leq 2.
+\]
+
+
+
+\section{稳定性条件验证}
+数值格式的稳定性由 CFL 数 $\sigma$ 决定。以下是各格式的稳定性条件：
+\begin{itemize}
+    \item 一阶迎风格式：$|\sigma| \leq 1$。
+    \item Lax-Wendroff 格式：$|\sigma| \leq 1$。
+    \item Warming-Beam 格式：$|\sigma| \leq 2$。
+\end{itemize}
+
+通过数值实验验证了不同 $\sigma$ 下的稳定性表现。图 展示了稳定和不稳定情况下的数值解对比。
+
+
+
+\section{相位超前与耗散分析}
+数值格式的相位超前和耗散特性通过分析数值解与精确解的偏差来评估。以下是各格式的分析结果：
+\begin{itemize}
+    \item \textbf{一阶迎风格式}：具有较强的耗散特性，振幅衰减显著，但相位偏差较小。
+    \item \textbf{Lax-Wendroff 格式}：振幅衰减较小，但可能出现相位超前或滞后。
+    \item \textbf{Warming-Beam 格式}：振幅衰减较小，但对稳定性要求较高，可能出现相位滞后。
+\end{itemize}
+
+图展示了各格式的耗散与相位分析结果。
+
+
+
+\section{结论}
+本文通过数值实验验证了一阶迎风格式、Lax-Wendroff 格式和 Warming-Beam 格式的稳定性、精度以及相位超前和耗散特性。结果表明：
+\begin{itemize}
+    \item 一阶迎风格式稳定性较好，但精度较低，适用于强耗散问题。
+    \item Lax-Wendroff 格式精度较高，但可能出现数值振荡。
+    \item Warming-Beam 格式精度最高，但对稳定性要求较高。
+\end{itemize}
+
+\end{document}

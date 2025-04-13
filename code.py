@@ -99,6 +99,9 @@ def validate_stability():
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
+        # 添加PDF保存
+        plt.savefig(f"{scheme['name']}_stability.pdf", bbox_inches='tight', dpi=300)
+        plt.close()  # 关闭当前figure以释放内存
     plt.show()
 # 精度验证
 def validate_convergence():
@@ -144,9 +147,13 @@ def validate_convergence():
 
     plt.xlabel(r'$\log_{10}(\Delta x)$', fontsize=12)
     plt.ylabel(r'$\log_{10}($maximum error$)$', fontsize=12)
-    plt.title('analysis of linear fitting')
+    plt.title('convergence_analysis')
     plt.legend()
     plt.grid(True, alpha=0.3)
+
+    # 添加PDF保存
+    plt.savefig("convergence_analysis.pdf", bbox_inches='tight', dpi=300)
+    plt.close()
 
 
 
@@ -206,6 +213,9 @@ def analyze_dissipation_phase():
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
+        # 添加PDF保存
+        plt.savefig(f"{scheme_name.lower()}_dissipation_phase.pdf", bbox_inches='tight', dpi=300)
+        plt.close()
     plt.show()
 
 # 执行所有验证
