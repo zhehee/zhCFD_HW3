@@ -169,63 +169,76 @@ def validate_convergence():
 # 耗散与相位分析
 
 def analyze_dissipation_phase():
+    L = 3.0
+    nu = 1.0
+    T = 2.0
     nx = 600
     dx = L / nx
     x = np.linspace(0, L, nx)
     u_initial = np.sin(2 * np.pi * x)
 
-    # 定义格式及其参数
+    # 定义各格式的σ范围 (根据稳定性条件)
     schemes = [
-        ('Upwind', upwind_solver, 0.8),
-        ('Lax-Wendroff', lax_wendroff_solver, 0.8),
-        ('Warming-Beam', warming_beam_solver, 1.6)
+        {'name': 'Upwind', 'solver': upwind_solver, 'sigma_range': np.linspace(0.1, 0.95, 50)},  # σ < 1
+        {'name': 'Lax-Wendroff', 'solver': lax_wendroff_solver, 'sigma_range': np.linspace(0.1, 0.95, 50)},  # σ < 1
+        {'name': 'Warming-Beam', 'solver': warming_beam_solver, 'sigma_range': np.linspace(0.1, 1.9, 50)}  # σ < 2
     ]
 
-    for scheme_name, solver, sigma in schemes:
-        # 计算时间步
-        dt = sigma * dx / nu
-        nt = int(T / dt)
+    # 绘制振幅衰减曲线
+    plt.figure(figsize=(8, 6))
+    for scheme in schemes:
+        amp_losses = []
+        valid_sigmas = []
+        for sigma in scheme['sigma_range']:
+            try:
+                dt = sigma * dx / nu
+                nt = int(T / dt)
+                u_num = scheme['solver'](u_initial.copy(), nt, dx, dt)
+                amplitude = (u_num.max() - u_num.min()) / 2
+                amp_loss = 1 - amplitude
+                amp_losses.append(amp_loss)
+                valid_sigmas.append(sigma)
+            except:
+                continue  # 跳过不稳定的σ
+        plt.plot(valid_sigmas, amp_losses, 'o-', label=scheme['name'])
+    plt.xlabel(r'CFL number $\sigma$')
+    plt.ylabel('Amplitude Damping Factor')
+    plt.title('Amplitude Damping vs. CFL Number')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.savefig("amplitude_damping.pdf", bbox_inches='tight', dpi=300)
+    plt.close()
 
-        # 计算数值解
-        u_num = solver(u_initial.copy(), nt, dx, dt)
-        u_exact = exact_solution(x, nt * dt)
+    # 绘制相位误差曲线
+    plt.figure(figsize=(8, 6))
+    for scheme in schemes:
+        phase_errors = []
+        valid_sigmas = []
+        for sigma in scheme['sigma_range']:
+            try:
+                dt = sigma * dx / nu
+                nt = int(T / dt)
+                u_num = scheme['solver'](u_initial.copy(), nt, dx, dt)
+                u_exact = exact_solution(x, nt * dt)
 
-        # 耗散分析
-        amplitude_num = (u_num.max() - u_num.min()) / 2
-        amplitude_loss = 1 - amplitude_num
-
-        # 相位分析
-        peak_num = x[np.argmax(u_num)]
-        x_exact_peak = x[np.argmax(u_exact)]
-        phase_diff = (peak_num - x_exact_peak) % 1
-
-        print(f"\n{scheme_name} analysis result:")
-        print(f"amplitude damping factor: {amplitude_loss:.4%}")
-        if phase_diff > 0:
-            print(f"Phase lead: {abs(phase_diff):.4%}wave length")
-        elif phase_diff < 0:
-            print(f"Phase lag: {abs(phase_diff):.4%}wave length")
-        else:
-            print("Phase synchronization")
-
-        # 可视化
-        plt.figure(figsize=(10, 4))
-        plt.plot(x, u_num, 'r-', label=f'{scheme_name} (σ={sigma})')
-        plt.plot(x, u_exact, 'k--', alpha=0.5, label='Exact solution')
-        plt.scatter(peak_num, u_num.max(), c='r', s=80,
-                    label=f'Numerical peak: {peak_num:.3f}')
-        plt.scatter(x_exact_peak, 1.0, c='k', s=80, marker='x',
-                    label=f'Exact peak: {x_exact_peak:.3f}')
-        plt.title(f"Dissipation and Dispersion Analysis - {scheme_name}")
-        plt.xlabel("Position")
-        plt.ylabel("Amplitude")
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        # 添加PDF保存
-        plt.savefig(f"{scheme_name.lower()}_dissipation_phase.pdf", bbox_inches='tight', dpi=300)
-        plt.close()
-    plt.show()
+                # 计算相位差
+                peak_num = x[np.argmax(u_num)]
+                x_exact_peak = x[np.argmax(u_exact)]
+                phase_diff = (peak_num - x_exact_peak) % 1
+                if phase_diff > 0.5:
+                    phase_diff = 1 - phase_diff
+                phase_errors.append(phase_diff)
+                valid_sigmas.append(sigma)
+            except:
+                continue
+        plt.plot(valid_sigmas, phase_errors, 'o-', label=scheme['name'])
+    plt.xlabel(r'CFL number $\sigma$')
+    plt.ylabel('Phase Error (Fraction of Wavelength)')
+    plt.title('Phase Error vs. CFL Number')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.savefig("phase_error.pdf", bbox_inches='tight', dpi=300)
+    plt.close()
 
 # 执行所有验证
 
